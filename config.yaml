@@ -1,0 +1,65 @@
+# Application Configuration
+app:
+  name: "Qualitative Research Analysis Pipeline"
+  version: "3.0.0"
+  output_folder: "analysis_output"
+
+# OpenAI Configuration
+openai:
+  model: "gpt-5-nano"
+  max_tokens: 16385
+  response_tokens: 4096
+  synthesis_response_tokens: 8192
+  safety_buffer: 1000
+  temperature: 0.3
+  max_concurrent_requests: 5
+
+# Pinecone Configuration
+pinecone:
+  api_key: "${PINECONE_API_KEY}"  # Set via environment variable
+  environment: "us-east-1"
+  index_name: "research-verbatims"
+  dimension: 1536  # For text-embedding-ada-002
+  metric: "cosine"
+  
+# Processing Configuration
+processing:
+  target_input_tokens_per_chunk: 2000
+  translation_batch_size: 20
+  verbatim_batch_size: 10
+  strategic_analysis_batch_size: 5
+  max_verbatims_per_topic: 20
+  
+# File Configuration
+files:
+  supported_extensions: [".docx", ".txt"]
+  guide_keywords: ["dg", "guide", "discussion"]
+  
+# Text Processing Patterns
+patterns:
+  chinese_chars: '[\u4e00-\u9fff]'
+  speaker: '^([^:：]+)[:：]'
+  timestamp: '^([^[]+)\[([^\]]+)\][:：]\s*(.*)$'
+  simple_speaker: '^([^:：]+)[:：]\s*(.*)$'
+  
+# Excel Export Configuration
+excel:
+  enabled: true
+  header_color: "E0E0E0"
+  max_column_width: 100
+  verbatim_column_width: 50
+  default_column_width: 40
+  
+# Word Export Configuration
+word:
+  enabled: true
+  font_name: "Calibri"
+  font_size: 11
+  line_spacing: 1.15
+  max_topics_for_colors: 15
+  
+# Runtime Configuration
+runtime:
+  execute_api_calls: true
+  debug_logging: false
+  dry_run: false
