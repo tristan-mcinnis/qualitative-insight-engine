@@ -35,13 +35,13 @@ class ColorSchemeManager:
         WD_COLOR_INDEX.DARK_YELLOW,
         WD_COLOR_INDEX.TEAL,
         WD_COLOR_INDEX.GRAY_25,
-        WD_COLOR_INDEX.TAN,
-        WD_COLOR_INDEX.LIGHT_BLUE,
-        WD_COLOR_INDEX.LIGHT_ORANGE,
-        WD_COLOR_INDEX.LIME,
-        WD_COLOR_INDEX.LIGHT_TURQUOISE,
-        WD_COLOR_INDEX.LAVENDER,
-        WD_COLOR_INDEX.YELLOW
+        WD_COLOR_INDEX.YELLOW,
+        WD_COLOR_INDEX.GREEN,
+        WD_COLOR_INDEX.VIOLET,
+        WD_COLOR_INDEX.DARK_BLUE,
+        WD_COLOR_INDEX.DARK_RED,
+        WD_COLOR_INDEX.WHITE,
+        WD_COLOR_INDEX.GRAY_50
     ]
     
     def __init__(self, config: AppConfig, logger: Logger = None):

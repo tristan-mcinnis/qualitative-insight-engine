@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(git clone:*)",
-      "Bash(git sparse-checkout:*)"
+      "Bash(git sparse-checkout:*)",
+      "Bash(gh repo create:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
