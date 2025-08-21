@@ -139,19 +139,53 @@ export class ApiService {
     description?: string,
     configuration?: any
   ): Promise<Project> {
-    return apiRequest<Project>('/projects', {
-      method: 'POST',
-      body: JSON.stringify({ name, description, configuration }),
-    });
+    try {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .insert({
+          name,
+          description,
+          status: 'created',
+          configuration
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to create project: ${error.message}`);
+      }
+
+      return project as Project;
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   /**
    * Get a project by ID
    */
   static async getProject(projectId: string): Promise<Project> {
-    return apiRequest<Project>(`/projects/${projectId}`, {
-      method: 'GET',
-    });
+    try {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to get project: ${error.message}`);
+      }
+
+      return project as Project;
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to get project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        404
+      );
+    }
   }
 
   /**
@@ -170,17 +204,27 @@ export class ApiService {
     projects: Project[];
     pagination: { limit: number; offset: number; total: number };
   }> {
-    const response = await apiRequest<{
-      data: Project[];
-      pagination: { limit: number; offset: number; total: number };
-    }>(`/projects?limit=${limit}&offset=${offset}`, {
-      method: 'GET',
-    });
-    
-    return {
-      projects: response.data || response as any,
-      pagination: response.pagination || { limit, offset, total: 0 }
-    };
+    try {
+      const { data: projects, error, count } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        throw new Error(`Failed to list projects: ${error.message}`);
+      }
+      
+      return {
+        projects: (projects || []) as Project[],
+        pagination: { limit, offset, total: count || 0 }
+      };
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to list projects: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   /**
