@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
-import { ResultsViewerProps, Theme, Report } from '../types';
-import { Card, Button } from '../styles/GlobalStyles';
+import { ResultsViewerProps } from '../types';
+import { Card } from '../styles/GlobalStyles';
 
 const ResultsContainer = styled.div`
   display: flex;

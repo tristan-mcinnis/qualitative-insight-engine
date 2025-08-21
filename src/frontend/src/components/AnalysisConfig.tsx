@@ -35,15 +35,7 @@ const FormGroup = styled.div`
   gap: ${theme.spacing[2]};
 `;
 
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${theme.spacing[4]};
-  
-  @media (max-width: ${theme.breakpoints.md}) {
-    grid-template-columns: 1fr;
-  }
-`;
+// Removed unused FormRow component
 
 const CheckboxGroup = styled.div`
   display: flex;

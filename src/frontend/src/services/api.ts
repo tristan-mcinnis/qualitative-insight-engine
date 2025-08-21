@@ -111,7 +111,7 @@ export class ApiService {
   static async checkHealth(): Promise<HealthResponse> {
     try {
       // Test Supabase connectivity by querying projects table
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('projects')
         .select('id')
         .limit(1);

@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
 import { FileUploadProps } from '../types';
-import { Card, Button, ErrorMessage } from '../styles/GlobalStyles';
+import { Card, ErrorMessage } from '../styles/GlobalStyles';
 
 const UploadArea = styled.div<{ $isDragOver: boolean; $disabled: boolean }>`
   border: 1px dashed ${props => 
@@ -330,7 +330,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
     const fileArray = Array.from(files);
     setSelectedFiles(fileArray);
     onFilesSelected(fileArray);
-  }, [onFilesSelected, acceptedTypes, maxFiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onFilesSelected]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();

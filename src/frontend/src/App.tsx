@@ -8,7 +8,7 @@ import AnalysisConfig from './components/AnalysisConfig';
 import ProgressTracker from './components/ProgressTracker';
 import ResultsViewer from './components/ResultsViewer';
 import { ApiService, handleApiError } from './services/api';
-import { AppState, AnalysisConfig as AnalysisConfigType, AnalysisResults, UploadResult } from './types';
+import { AppState, AnalysisConfig as AnalysisConfigType, UploadResult } from './types';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -144,14 +144,7 @@ const StepLabel = styled.div<{ $active: boolean; $completed: boolean }>`
   }
 `;
 
-const StepNumber = styled.div`
-  position: absolute;
-  top: -${theme.spacing[2]};
-  right: -${theme.spacing[2]};
-  font-size: ${theme.typography.fontSize.xs};
-  color: ${theme.colors.text.muted};
-  font-weight: ${theme.typography.fontWeight.medium};
-`;
+// Removed unused StepNumber component
 
 const ErrorBanner = styled.div`
   background: ${theme.colors.grey[50]};
@@ -272,7 +265,6 @@ const App: React.FC = () => {
   });
 
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'loading'>('loading');
-  const [isPolling, setIsPolling] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -332,11 +324,13 @@ const App: React.FC = () => {
     
     document.addEventListener('keydown', handleKeyboardShortcuts);
     return () => document.removeEventListener('keydown', handleKeyboardShortcuts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appState.currentStep, appState.error]);
   
   // Check API connection on mount
   useEffect(() => {
     checkApiConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkApiConnection = useCallback(async () => {
@@ -355,7 +349,6 @@ const App: React.FC = () => {
     let pollInterval: NodeJS.Timeout;
 
     if (appState.isAnalysisRunning && connectionStatus === 'online') {
-      setIsPolling(true);
       pollInterval = setInterval(async () => {
         try {
           const status = await ApiService.getAnalysisStatus();
@@ -373,7 +366,6 @@ const App: React.FC = () => {
           }));
 
           if (!status.isRunning) {
-            setIsPolling(false);
             if (status.error) {
               setAppState(prev => ({
                 ...prev,
@@ -389,7 +381,6 @@ const App: React.FC = () => {
           }
         } catch (error) {
           console.error('Failed to poll analysis status:', error);
-          setIsPolling(false);
         }
       }, 2000); // Poll every 2 seconds
     }
@@ -397,7 +388,6 @@ const App: React.FC = () => {
     return () => {
       if (pollInterval) {
         clearInterval(pollInterval);
-        setIsPolling(false);
       }
     };
   }, [appState.isAnalysisRunning, connectionStatus]);
@@ -575,22 +565,7 @@ const App: React.FC = () => {
     return step === appState.currentStep;
   };
   
-  const canNavigateToStep = (step: string): boolean => {
-    if (appState.isAnalysisRunning) return false;
-    
-    switch (step) {
-      case 'upload':
-        return true;
-      case 'config':
-        return appState.uploadedFiles.transcripts.length > 0;
-      case 'analysis':
-        return false; // Can't manually navigate to analysis
-      case 'results':
-        return appState.results !== null;
-      default:
-        return false;
-    }
-  };
+  // Removed unused canNavigateToStep function
 
   const renderCurrentStep = () => {
     switch (appState.currentStep) {
