@@ -11,7 +11,9 @@
       "mcp__supabase__generate_typescript_types",
       "mcp__supabase__get_advisors",
       "Bash(mkdir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

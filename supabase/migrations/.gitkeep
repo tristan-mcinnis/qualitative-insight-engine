@@ -1,0 +1,3 @@
+# This directory stores database migrations
+# Migrations are automatically created by running:
+# supabase db diff --use-migra -f migration_name

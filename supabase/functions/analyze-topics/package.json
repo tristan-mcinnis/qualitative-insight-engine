@@ -1,0 +1,15 @@
+{
+  "name": "analyze-topics",
+  "version": "1.0.0",
+  "description": "Edge Function for analyzing topics and themes",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "deno test",
+    "deploy": "supabase functions deploy analyze-topics"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "openai": "^4.0.0"
+  }
+}

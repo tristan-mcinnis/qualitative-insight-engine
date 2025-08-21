@@ -1,0 +1,15 @@
+{
+  "name": "extract-verbatims",
+  "version": "1.0.0",
+  "description": "Edge Function for extracting verbatims from transcripts",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "deno test",
+    "deploy": "supabase functions deploy extract-verbatims"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "openai": "^4.0.0"
+  }
+}

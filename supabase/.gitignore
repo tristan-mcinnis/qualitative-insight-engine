@@ -1,0 +1,10 @@
+# Supabase
+.branches
+.temp
+
+# Functions
+functions/.debug
+functions/.env
+
+# Local Supabase
+.env.local

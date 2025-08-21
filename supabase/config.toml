@@ -1,0 +1,48 @@
+# Supabase Project Configuration
+
+[project]
+# A random ID for your project
+id = "qualitative-insight-engine"
+
+[api]
+# Port for the API gateway
+port = 54321
+# External URL of the API
+external_url = "http://localhost:54321"
+
+[db]
+# Port for PostgreSQL database
+port = 54322
+# The database major version to use (12, 13, 14, or 15)
+major_version = 15
+
+[studio]
+# Port for Supabase Studio
+port = 54323
+
+[inbucket]
+# Port for email testing service
+port = 54324
+
+[storage]
+# Port for Storage API
+port = 54325
+
+[auth]
+# Configuration for authentication
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+
+[auth.email]
+# Enable email auth
+enable_signup = true
+enable_confirmations = false
+
+# Edge Functions configuration
+[functions]
+# Enable Edge Functions
+enabled = true
+
+[analytics]
+# Enable analytics
+enabled = false

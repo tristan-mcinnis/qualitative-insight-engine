@@ -1,0 +1,15 @@
+{
+  "name": "process-analysis",
+  "version": "1.0.0",
+  "description": "Edge Function for processing qualitative analysis",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "deno test",
+    "deploy": "supabase functions deploy process-analysis"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "openai": "^4.0.0"
+  }
+}
