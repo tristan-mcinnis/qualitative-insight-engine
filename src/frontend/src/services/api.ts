@@ -140,9 +140,9 @@ export class ApiService {
     configuration?: any
   ): Promise<Project> {
     try {
-      // For demo purposes, use a default user_id since RLS policies expect it
+      // For demo purposes, use an existing user_id since there's a foreign key constraint
       // In production, this should be the authenticated user's ID
-      const defaultUserId = '00000000-0000-0000-0000-000000000000';
+      const defaultUserId = '5811893b-29f3-45c0-9bd8-42a48c0abeca';
       
       const { data: project, error } = await supabase
         .from('projects')
