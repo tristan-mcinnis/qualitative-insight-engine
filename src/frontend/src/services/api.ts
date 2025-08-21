@@ -198,9 +198,33 @@ export class ApiService {
    * Get project with analysis summary
    */
   static async getProjectSummary(projectId: string): Promise<Project & { summary: any }> {
-    return apiRequest<Project & { summary: any }>(`/projects/${projectId}/summary`, {
-      method: 'GET',
-    });
+    try {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to get project summary: ${error.message}`);
+      }
+
+      // For now, return project with empty summary
+      // In production, this would aggregate analysis data
+      return {
+        ...project,
+        summary: {
+          totalVerbatims: 0,
+          totalTopics: 0,
+          completedAnalyses: 0
+        }
+      } as Project & { summary: any };
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to get project summary: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        404
+      );
+    }
   }
 
   /**
@@ -240,19 +264,49 @@ export class ApiService {
     projectId: string,
     updates: Partial<Project>
   ): Promise<Project> {
-    return apiRequest<Project>(`/projects/${projectId}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
+    try {
+      const { data: project, error } = await supabase
+        .from('projects')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to update project: ${error.message}`);
+      }
+
+      return project as Project;
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to update project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   /**
    * Delete project
    */
   static async deleteProject(projectId: string): Promise<void> {
-    await apiRequest(`/projects/${projectId}`, {
-      method: 'DELETE',
-    });
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) {
+        throw new Error(`Failed to delete project: ${error.message}`);
+      }
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to delete project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   // File Upload
@@ -362,17 +416,24 @@ export class ApiService {
     guide?: any;
     transcripts: any[];
   }> {
-    const [guideResponse, transcriptsResponse] = await Promise.allSettled([
-      apiRequest(`/projects/${projectId}/files/guide`, { method: 'GET' }),
-      apiRequest(`/projects/${projectId}/files/transcripts`, { method: 'GET' })
-    ]);
+    try {
+      const [guideResponse, transcriptsResponse] = await Promise.allSettled([
+        supabase.from('discussion_guides').select('*').eq('project_id', projectId).single(),
+        supabase.from('transcripts').select('*').eq('project_id', projectId)
+      ]);
 
-    return {
-      guide: guideResponse.status === 'fulfilled' ? guideResponse.value : null,
-      transcripts: transcriptsResponse.status === 'fulfilled' 
-        ? (transcriptsResponse.value as any)?.data || [] 
-        : []
-    };
+      return {
+        guide: guideResponse.status === 'fulfilled' && !guideResponse.value.error 
+          ? guideResponse.value.data 
+          : null,
+        transcripts: transcriptsResponse.status === 'fulfilled' && !transcriptsResponse.value.error
+          ? transcriptsResponse.value.data || []
+          : []
+      };
+    } catch (error) {
+      console.error('Error fetching project files:', error);
+      return { guide: null, transcripts: [] };
+    }
   }
 
   /**
@@ -384,10 +445,15 @@ export class ApiService {
     fileId: string,
     expiresIn: number = 3600
   ): Promise<{ downloadUrl: string; expiresIn: number }> {
-    return apiRequest<{ downloadUrl: string; expiresIn: number }>(
-      `/projects/${projectId}/files/${fileType}/${fileId}/download?expiresIn=${expiresIn}`,
-      { method: 'GET' }
-    );
+    // For Supabase, we'll return a direct link to the content
+    // In production, this would generate a signed URL from Supabase Storage
+    const table = fileType === 'guide' ? 'discussion_guides' : 'transcripts';
+    const baseUrl = process.env.REACT_APP_SUPABASE_URL || '';
+    
+    return {
+      downloadUrl: `${baseUrl}/storage/v1/object/public/${table}/${fileId}`,
+      expiresIn: expiresIn
+    };
   }
 
   // Analysis
@@ -436,9 +502,31 @@ export class ApiService {
    * Get analysis progress
    */
   static async getAnalysisProgress(sessionId: string): Promise<AnalysisProgress> {
-    return apiRequest<AnalysisProgress>(`/analysis/progress/${sessionId}`, {
-      method: 'GET',
-    });
+    try {
+      const { data: session, error } = await supabase
+        .from('analysis_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to get analysis progress: ${error.message}`);
+      }
+
+      return {
+        sessionId: session.id,
+        projectId: session.project_id,
+        status: session.status as 'created' | 'processing' | 'completed' | 'failed',
+        progress: session.progress || 0,
+        currentStep: session.current_step || '',
+        estimatedRemaining: session.estimated_remaining_seconds
+      };
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to get analysis progress: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        404
+      );
+    }
   }
 
   /**
@@ -455,35 +543,72 @@ export class ApiService {
       completedAt: string;
     };
   }> {
-    const url = resultType 
-      ? `/analysis/results/${sessionId}?resultType=${resultType}`
-      : `/analysis/results/${sessionId}`;
-    
-    const response = await apiRequest<{
-      data: any[];
-      sessionInfo: {
-        sessionId: string;
-        projectId: string;
-        completedAt: string;
-      };
-    }>(url, { method: 'GET' });
+    try {
+      // Get session info
+      const { data: session, error: sessionError } = await supabase
+        .from('analysis_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
 
-    return {
-      results: response.data || response as any,
-      sessionInfo: response.sessionInfo
-    };
+      if (sessionError) {
+        throw new Error(`Failed to get session: ${sessionError.message}`);
+      }
+
+      // Get analysis results
+      const { data: results, error: resultsError } = await supabase
+        .from('analysis_results')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false });
+
+      if (resultsError) {
+        throw new Error(`Failed to get results: ${resultsError.message}`);
+      }
+
+      // Filter by result type if specified
+      const filteredResults = resultType && results
+        ? results.filter((r: any) => r.result_type === resultType)
+        : results || [];
+
+      return {
+        results: filteredResults,
+        sessionInfo: {
+          sessionId: session.id,
+          projectId: session.project_id,
+          completedAt: session.completed_at || new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to get analysis results: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        404
+      );
+    }
   }
 
   /**
    * Get project analysis sessions
    */
   static async getProjectSessions(projectId: string): Promise<AnalysisSession[]> {
-    const response = await apiRequest<{ data: AnalysisSession[] }>(
-      `/analysis/sessions/${projectId}`,
-      { method: 'GET' }
-    );
-    
-    return response.data || response as any;
+    try {
+      const { data: sessions, error } = await supabase
+        .from('analysis_sessions')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('started_at', { ascending: false });
+
+      if (error) {
+        throw new Error(`Failed to get project sessions: ${error.message}`);
+      }
+
+      return (sessions || []) as AnalysisSession[];
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to get project sessions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   /**
@@ -494,22 +619,57 @@ export class ApiService {
     status: string;
     message: string;
   }> {
-    return apiRequest<{
-      sessionId: string;
-      status: string;
-      message: string;
-    }>(`/analysis/retry/${sessionId}`, {
-      method: 'POST',
-    });
+    try {
+      // Reset the session status to retry
+      const { data: session, error } = await supabase
+        .from('analysis_sessions')
+        .update({
+          status: 'created',
+          progress: 0,
+          current_step: 'initializing',
+          error_message: null,
+          started_at: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to retry analysis: ${error.message}`);
+      }
+
+      return {
+        sessionId: session.id,
+        status: 'restarted',
+        message: 'Analysis has been restarted'
+      };
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to retry analysis: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   /**
    * Delete analysis session
    */
   static async deleteAnalysisSession(sessionId: string): Promise<void> {
-    await apiRequest(`/analysis/sessions/${sessionId}`, {
-      method: 'DELETE',
-    });
+    try {
+      const { error } = await supabase
+        .from('analysis_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) {
+        throw new Error(`Failed to delete analysis session: ${error.message}`);
+      }
+    } catch (error) {
+      throw new ApiServiceError(
+        `Failed to delete analysis session: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        500
+      );
+    }
   }
 
   // Legacy methods for backward compatibility
