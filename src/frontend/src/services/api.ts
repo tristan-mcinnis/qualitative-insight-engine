@@ -299,15 +299,36 @@ export class ApiService {
     status: string;
     message: string;
   }> {
-    return apiRequest<{
-      sessionId: string;
-      projectId: string;
-      status: string;
-      message: string;
-    }>('/analysis/start', {
-      method: 'POST',
-      body: JSON.stringify({ projectId }),
-    });
+    try {
+      // Create a new analysis session in Supabase
+      const { data: session, error } = await supabase
+        .from('analysis_sessions')
+        .insert({
+          project_id: projectId,
+          status: 'created',
+          progress: 0,
+          current_step: 'initializing',
+          settings: { mock: true, frontend_only: true }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to create analysis session: ${error.message}`);
+      }
+
+      // For frontend-only deployment, simulate starting analysis
+      // In a real implementation, this would trigger backend processing
+      return {
+        sessionId: session.id,
+        projectId: projectId,
+        status: 'created',
+        message: 'Analysis session created successfully. Note: This is a frontend-only demo.'
+      };
+    } catch (error) {
+      console.error('Start analysis error:', error);
+      throw new Error(`Failed to start analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
@@ -441,24 +462,30 @@ export class ApiService {
    * @deprecated Use uploadDiscussionGuide and uploadTranscripts instead
    */
   static async uploadFiles(files: File[]): Promise<{ projectDir: string }> {
-    // Create a new project for uploaded files
-    const project = await this.createProject(
-      `Upload Session ${new Date().toISOString()}`,
-      'Files uploaded via legacy upload method'
-    );
+    try {
+      // Create a new project for uploaded files
+      const project = await this.createProject(
+        `Upload Session ${new Date().toISOString()}`,
+        'Files uploaded for analysis'
+      );
 
-    const guides = files.filter(f => f.name.toLowerCase().includes('guide'));
-    const transcripts = files.filter(f => !f.name.toLowerCase().includes('guide'));
+      const guides = files.filter(f => f.name.toLowerCase().includes('guide'));
+      const transcripts = files.filter(f => !f.name.toLowerCase().includes('guide'));
 
-    if (guides.length > 0) {
-      await this.uploadDiscussionGuide(project.id, guides[0]);
+      // For now, simulate file upload by storing metadata in Supabase
+      if (guides.length > 0) {
+        await this.uploadDiscussionGuide(project.id, guides[0]);
+      }
+
+      if (transcripts.length > 0) {
+        await this.uploadTranscripts(project.id, transcripts);
+      }
+
+      return { projectDir: project.id };
+    } catch (error) {
+      console.error('Upload files error:', error);
+      throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    if (transcripts.length > 0) {
-      await this.uploadTranscripts(project.id, transcripts);
-    }
-
-    return { projectDir: project.id };
   }
 
   /**
