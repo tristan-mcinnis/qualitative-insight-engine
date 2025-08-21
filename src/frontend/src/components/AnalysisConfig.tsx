@@ -280,12 +280,12 @@ const AnalysisConfigComponent: React.FC<AnalysisConfigProps> = ({
         </FormSection>
         
         {reportTemplate === 'custom' && (
-          <ReportCustomizationSection>
+          <FormSection>
             <SectionTitle>Advanced Output Settings</SectionTitle>
             <SectionDescription>
               Fine-tune your report generation options.
             </SectionDescription>
-          </ReportCustomizationSection>
+          </FormSection>
         )}
 
         <FormSection>
