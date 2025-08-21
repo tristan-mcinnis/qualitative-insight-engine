@@ -19,6 +19,7 @@ root.render(
 );
 
 // Hot module replacement for development
+declare const module: any;
 if (module.hot) {
   module.hot.accept('./App', () => {
     const NextApp = require('./App').default;

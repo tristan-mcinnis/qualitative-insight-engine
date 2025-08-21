@@ -153,12 +153,35 @@ const AnalysisConfigComponent: React.FC<AnalysisConfigProps> = ({
 }) => {
   const [config, setConfig] = useState<AnalysisConfig>({
     projectName: '',
+    template: 'standard',
+    options: {
+      includeWordExport: true,
+      includeExcelExport: true,
+      enableRealTimeUpdates: true,
+      batchSize: 10,
+      confidenceThreshold: 'Medium'
+    },
     skipWord: false,
     skipExcel: false,
     debug: false,
     dryRun: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Calculate estimated time based on configuration
+  const estimatedTime = (() => {
+    const baseTime = {
+      'standard': 5,
+      'detailed': 10,
+      'executive': 3,
+      'custom': 8
+    }[config.template];
+    
+    const multiplier = config.options.batchSize <= 5 ? 1 : config.options.batchSize <= 10 ? 1.5 : 2;
+    const totalMinutes = Math.round(baseTime * multiplier);
+    
+    return totalMinutes < 60 ? `${totalMinutes} minutes` : `${Math.round(totalMinutes / 60)} hours`;
+  })();
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -183,9 +206,9 @@ const AnalysisConfigComponent: React.FC<AnalysisConfigProps> = ({
         ...config,
         projectName: config.projectName.trim(),
         // Apply template-based configurations
-        skipWord: reportTemplate === 'custom' ? config.skipWord : reportTemplate === 'executive',
-        skipExcel: reportTemplate === 'custom' ? config.skipExcel : false,
-        debug: reportTemplate === 'custom' ? config.debug : reportTemplate === 'detailed',
+        skipWord: config.template === 'custom' ? config.skipWord : config.template === 'executive',
+        skipExcel: config.template === 'custom' ? config.skipExcel : false,
+        debug: config.template === 'custom' ? config.debug : config.template === 'detailed',
         dryRun: config.dryRun // Always respect user's dry run choice
       };
       onConfigSubmit(trimmedConfig);
@@ -204,6 +227,14 @@ const AnalysisConfigComponent: React.FC<AnalysisConfigProps> = ({
   const resetForm = () => {
     setConfig({
       projectName: '',
+      template: 'standard',
+      options: {
+        includeWordExport: true,
+        includeExcelExport: true,
+        enableRealTimeUpdates: true,
+        batchSize: 10,
+        confidenceThreshold: 'Medium'
+      },
       skipWord: false,
       skipExcel: false,
       debug: false,
@@ -279,7 +310,7 @@ const AnalysisConfigComponent: React.FC<AnalysisConfigProps> = ({
           </CheckboxGroup>
         </FormSection>
         
-        {reportTemplate === 'custom' && (
+        {config.template === 'custom' && (
           <FormSection>
             <SectionTitle>Advanced Output Settings</SectionTitle>
             <SectionDescription>
@@ -338,17 +369,17 @@ const AnalysisConfigComponent: React.FC<AnalysisConfigProps> = ({
           <PreviewItem>
             <PreviewLabel>Report Template:</PreviewLabel>
             <PreviewValue>
-              {reportTemplate === 'standard' && '📄 Standard Report'}
-              {reportTemplate === 'detailed' && '📊 Detailed Analysis'}
-              {reportTemplate === 'executive' && '📈 Executive Summary'}
-              {reportTemplate === 'custom' && '⚙️ Custom Configuration'}
+              {config.template === 'standard' && '📄 Standard Report'}
+              {config.template === 'detailed' && '📊 Detailed Analysis'}
+              {config.template === 'executive' && '📈 Executive Summary'}
+              {config.template === 'custom' && '⚙️ Custom Configuration'}
             </PreviewValue>
           </PreviewItem>
           <PreviewItem>
             <PreviewLabel>Estimated Time:</PreviewLabel>
             <PreviewValue>{estimatedTime}</PreviewValue>
           </PreviewItem>
-          {reportTemplate === 'custom' && (
+          {config.template === 'custom' && (
             <>
               <PreviewItem>
                 <PreviewLabel>Word Report:</PreviewLabel>

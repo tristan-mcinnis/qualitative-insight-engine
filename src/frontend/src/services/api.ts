@@ -1,6 +1,6 @@
 import React from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Database } from './database';
+import { Database } from '../types/database';
 import {
   HealthResponse,
   ConfigResponse,
@@ -508,7 +508,7 @@ export class RealtimeService {
         },
         (payload) => {
           if (payload.new) {
-            const session = payload.new;
+            const session = payload.new as AnalysisSession;
             const progress: AnalysisProgress = {
               sessionId: session.id,
               projectId: session.project_id,

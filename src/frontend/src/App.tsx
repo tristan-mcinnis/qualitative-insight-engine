@@ -8,7 +8,7 @@ import AnalysisConfig from './components/AnalysisConfig';
 import ProgressTracker from './components/ProgressTracker';
 import ResultsViewer from './components/ResultsViewer';
 import { ApiService, handleApiError } from './services/api';
-import { AppState, AnalysisConfig as AnalysisConfigType, AnalysisResults } from './types';
+import { AppState, AnalysisConfig as AnalysisConfigType, AnalysisResults, UploadResult } from './types';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -241,20 +241,34 @@ const ErrorDismiss = styled.button`
 // Main App Component
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>({
+    currentProject: null,
+    projects: [],
+    currentSession: null,
     currentStep: 'upload',
-    uploadedFiles: [],
+    uploadedFiles: {
+      transcripts: []
+    },
     config: {
       projectName: '',
+      template: 'standard',
+      options: {
+        includeWordExport: true,
+        includeExcelExport: true,
+        enableRealTimeUpdates: true,
+        batchSize: 10,
+        confidenceThreshold: 'Medium'
+      },
       skipWord: false,
       skipExcel: false,
       debug: false,
       dryRun: false
     },
     isAnalysisRunning: false,
-    analysisProgress: 0,
-    analysisStep: '',
+    analysisProgress: null,
     results: null,
-    error: null
+    error: null,
+    loading: false,
+    subscriptions: {}
   });
 
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'loading'>('loading');
@@ -348,8 +362,13 @@ const App: React.FC = () => {
           
           setAppState(prev => ({
             ...prev,
-            analysisProgress: status.progress,
-            analysisStep: status.currentStep,
+            analysisProgress: status.isRunning ? {
+              sessionId: '',
+              projectId: '',
+              status: 'processing',
+              progress: status.progress,
+              currentStep: status.currentStep
+            } : null,
             isAnalysisRunning: status.isRunning
           }));
 
@@ -383,17 +402,34 @@ const App: React.FC = () => {
     };
   }, [appState.isAnalysisRunning, connectionStatus]);
 
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  
   const handleFilesSelected = useCallback((files: File[]) => {
+    // Store the actual File objects for upload
+    setSelectedFiles(files);
+    
+    // Convert File[] to UploadResult[] format for display
+    const uploadResults: UploadResult[] = files.map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file_name: file.name,
+      file_path: file.name,
+      file_size: file.size,
+      content_type: file.type,
+      created_at: new Date().toISOString()
+    }));
+    
     setAppState(prev => ({
       ...prev,
-      uploadedFiles: files,
+      uploadedFiles: {
+        transcripts: uploadResults
+      },
       currentStep: files.length > 0 ? 'config' : 'upload',
       error: null
     }));
   }, []);
 
   const handleConfigSubmit = useCallback(async (config: AnalysisConfigType) => {
-    if (appState.uploadedFiles.length === 0) {
+    if (appState.uploadedFiles.transcripts.length === 0) {
       setAppState(prev => ({
         ...prev,
         error: 'Please upload files before starting analysis'
@@ -406,14 +442,19 @@ const App: React.FC = () => {
       config,
       currentStep: 'analysis',
       isAnalysisRunning: true,
-      analysisProgress: 0,
-      analysisStep: 'initialize',
+      analysisProgress: {
+        sessionId: '',
+        projectId: '',
+        status: 'processing',
+        progress: 0,
+        currentStep: 'initialize'
+      },
       error: null
     }));
 
     try {
       // First upload files
-      const uploadResult = await ApiService.uploadFiles(appState.uploadedFiles);
+      const uploadResult = await ApiService.uploadFiles(selectedFiles);
       
       // Then start analysis
       const analysisRequest = {
@@ -432,7 +473,13 @@ const App: React.FC = () => {
           results: response.results!,
           currentStep: 'results',
           isAnalysisRunning: false,
-          analysisProgress: 100
+          analysisProgress: {
+            sessionId: '',
+            projectId: '',
+            status: 'completed',
+            progress: 100,
+            currentStep: 'Analysis complete'
+          }
         }));
       } else {
         throw new Error(response.error || 'Analysis failed');
@@ -446,7 +493,7 @@ const App: React.FC = () => {
         currentStep: 'config'
       }));
     }
-  }, [appState.uploadedFiles]);
+  }, [appState.uploadedFiles, selectedFiles]);
 
   const handleDownload = useCallback(async (reportPath: string) => {
     try {
@@ -471,21 +518,36 @@ const App: React.FC = () => {
   }, []);
 
   const handleStartOver = useCallback(() => {
+    setSelectedFiles([]);
     setAppState({
+      currentProject: null,
+      projects: [],
+      currentSession: null,
       currentStep: 'upload',
-      uploadedFiles: [],
+      uploadedFiles: {
+        transcripts: []
+      },
       config: {
         projectName: '',
+        template: 'standard',
+        options: {
+          includeWordExport: true,
+          includeExcelExport: true,
+          enableRealTimeUpdates: true,
+          batchSize: 10,
+          confidenceThreshold: 'Medium'
+        },
         skipWord: false,
         skipExcel: false,
         debug: false,
         dryRun: false
       },
       isAnalysisRunning: false,
-      analysisProgress: 0,
-      analysisStep: '',
+      analysisProgress: null,
       results: null,
-      error: null
+      error: null,
+      loading: false,
+      subscriptions: {}
     });
   }, []);
 
@@ -520,7 +582,7 @@ const App: React.FC = () => {
       case 'upload':
         return true;
       case 'config':
-        return appState.uploadedFiles.length > 0;
+        return appState.uploadedFiles.transcripts.length > 0;
       case 'analysis':
         return false; // Can't manually navigate to analysis
       case 'results':
@@ -552,9 +614,9 @@ const App: React.FC = () => {
         return (
           <ProgressTracker
             isRunning={appState.isAnalysisRunning}
-            progress={appState.analysisProgress}
-            currentStep={appState.analysisStep}
-            error={appState.error}
+            progress={appState.analysisProgress?.progress || 0}
+            currentStep={appState.analysisProgress?.currentStep || ''}
+            error={appState.error || undefined}
           />
         );
       
@@ -620,7 +682,7 @@ const App: React.FC = () => {
               <StepContainer 
                 $active={isStepActive('config')} 
                 $completed={isStepCompleted('config')}
-                onClick={() => !appState.isAnalysisRunning && appState.uploadedFiles.length > 0 && setAppState(prev => ({ ...prev, currentStep: 'config' }))}
+                onClick={() => !appState.isAnalysisRunning && appState.uploadedFiles.transcripts.length > 0 && setAppState(prev => ({ ...prev, currentStep: 'config' }))}
                 role="button"
                 tabIndex={0}
                 aria-label="Go to configuration step"

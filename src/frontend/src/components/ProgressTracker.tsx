@@ -343,7 +343,7 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   const [timelineHistory, setTimelineHistory] = useState<Array<{
     step: string;
     timestamp: Date;
-    status: 'completed' | 'active';
+    status: 'completed' | 'active' | 'pending';
   }>>([]);
   
   const [startTime, setStartTime] = useState<Date | null>(null);
@@ -386,7 +386,15 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
     if (currentStep && isRunning) {
       setTimelineHistory(prev => {
         // Mark previous step as completed
-        const updated = prev.map(item => ({ ...item, status: 'completed' as const }));
+        const updated: Array<{
+          step: string;
+          timestamp: Date;
+          status: 'completed' | 'active' | 'pending';
+        }> = prev.map(item => ({ 
+          step: item.step,
+          timestamp: item.timestamp,
+          status: 'completed' as const 
+        }));
         
         // Add current step if not already present
         const currentExists = updated.find(item => item.step === currentStep);
@@ -394,7 +402,7 @@ const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           updated.push({
             step: currentStep,
             timestamp: new Date(),
-            status: 'active'
+            status: 'active' as const
           });
         }
         
