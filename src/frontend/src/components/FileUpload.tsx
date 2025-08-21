@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import { theme } from '../styles/theme';
 import { FileUploadProps } from '../types';
@@ -272,16 +272,28 @@ const StatItem = styled.div`
   }
 `;
 
-const FileUpload: React.FC<FileUploadProps> = ({
+export interface FileUploadRef {
+  triggerFileSelect: () => void;
+}
+
+const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
   onFilesSelected,
   acceptedTypes = '.txt,.docx,.pdf,.md',
   maxFiles = 10,
   disabled = false
-}) => {
+}, ref) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    triggerFileSelect: () => {
+      if (fileInputRef.current && !disabled) {
+        fileInputRef.current.click();
+      }
+    }
+  }));
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -414,7 +426,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
             handleClick();
           }
         }}
-        aria-label="Upload files by clicking or dragging and dropping"
+        aria-label={`File upload area. ${selectedFiles.length > 0 
+          ? `${selectedFiles.length} files selected. ` 
+          : ''
+        }Drop files here or click to browse. Supported formats: ${acceptedTypes}.${disabled ? ' Upload currently disabled.' : ''}`}
       >
         <UploadIcon>
           {isDragOver ? '📤' : selectedFiles.length > 0 ? '✓' : '📁'}
@@ -450,6 +465,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
         accept={acceptedTypes}
         onChange={handleInputChange}
         disabled={disabled}
+        data-testid="file-upload-input"
+        aria-label={`Upload files. Supported formats: ${acceptedTypes}. Maximum ${maxFiles} files.`}
       />
       
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -597,6 +614,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
       )}
     </Card>
   );
-};
+});
+
+FileUpload.displayName = 'FileUpload';
 
 export default FileUpload;

@@ -14,8 +14,12 @@ import {
 } from '../types';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'https://owcstzxnpeyndgxlxxxx.supabase.co';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93Y3N0enhucGV5bmRneGx4eHh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NDA5MjcsImV4cCI6MjA3MTMxNjkyN30.KSQexqQYuBu5vYLooRR0h9UWfk-TEmkiImf0YUOQIDg';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing required environment variables: REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY');
+}
 
 export const supabase: SupabaseClient<Database> = createClient(supabaseUrl, supabaseAnonKey);
 

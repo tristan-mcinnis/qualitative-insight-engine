@@ -3,7 +3,7 @@ import styled, { ThemeProvider, keyframes, css } from 'styled-components';
 import { theme } from './styles/theme';
 import { GlobalStyles } from './styles/GlobalStyles';
 import Layout from './components/Layout';
-import FileUpload from './components/FileUpload';
+import FileUpload, { FileUploadRef } from './components/FileUpload';
 import AnalysisConfig from './components/AnalysisConfig';
 import ProgressTracker from './components/ProgressTracker';
 import ResultsViewer from './components/ResultsViewer';
@@ -266,7 +266,7 @@ const App: React.FC = () => {
 
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'loading'>('loading');
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileUploadRef = useRef<FileUploadRef>(null);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -281,8 +281,8 @@ const App: React.FC = () => {
       // Ctrl+U: Focus on upload
       if (e.ctrlKey && e.key === 'u') {
         e.preventDefault();
-        if (appState.currentStep === 'upload' && fileInputRef.current) {
-          fileInputRef.current.click();
+        if (appState.currentStep === 'upload' && fileUploadRef.current) {
+          fileUploadRef.current.triggerFileSelect();
         } else {
           setAppState(prev => ({ ...prev, currentStep: 'upload' }));
         }
@@ -572,6 +572,7 @@ const App: React.FC = () => {
       case 'upload':
         return (
           <FileUpload
+            ref={fileUploadRef}
             onFilesSelected={handleFilesSelected}
             disabled={connectionStatus !== 'online'}
           />
@@ -629,7 +630,7 @@ const App: React.FC = () => {
             )}
 
             {/* Step Indicator */}
-            <StepIndicator>
+            <StepIndicator role="navigation" aria-label="Analysis workflow steps">
               <StepContainer 
                 $active={isStepActive('upload')} 
                 $completed={isStepCompleted('upload')}
@@ -779,19 +780,6 @@ const App: React.FC = () => {
               </KeyboardShortcutsIndicator>
             )}
             
-            {/* Hidden file input for keyboard shortcuts */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".txt,.docx,.pdf,.md"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                if (e.target.files) {
-                  handleFilesSelected(Array.from(e.target.files));
-                }
-              }}
-            />
           </MainContent>
         </Layout>
       </AppContainer>

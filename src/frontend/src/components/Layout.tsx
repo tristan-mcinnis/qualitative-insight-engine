@@ -132,6 +132,24 @@ const StatusIndicator = styled.div<{ $status: 'online' | 'offline' | 'loading' }
   }
 `;
 
+const SkipLink = styled.a`
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: ${theme.colors.grey[900]};
+  color: ${theme.colors.text.inverse};
+  padding: 8px;
+  text-decoration: none;
+  border-radius: ${theme.borderRadius.base};
+  z-index: ${theme.zIndex.modal};
+  transition: top 0.2s;
+  font-weight: ${theme.typography.fontWeight.semibold};
+  
+  &:focus {
+    top: 6px;
+  }
+`;
+
 const Main = styled.main`
   flex: 1;
   padding: ${theme.spacing[6]} 0;
@@ -200,11 +218,13 @@ const Layout: React.FC<LayoutComponentProps> = ({
 
   return (
     <LayoutWrapper>
-      <Header>
+      <SkipLink href="#main">Skip to main content</SkipLink>
+      
+      <Header role="banner">
         <Container>
           <HeaderContent>
             <Logo>
-              <LogoIcon>QR</LogoIcon>
+              <LogoIcon aria-hidden="true">QR</LogoIcon>
               <div>
                 <LogoText>Qualitative Research Pipeline</LogoText>
                 <LogoSubtext>Advanced text analysis and reporting</LogoSubtext>
@@ -217,6 +237,7 @@ const Layout: React.FC<LayoutComponentProps> = ({
                 title={connectionStatus === 'offline' ? 'Click to retry connection' : ''}
                 role={connectionStatus === 'offline' ? 'button' : undefined}
                 tabIndex={connectionStatus === 'offline' ? 0 : undefined}
+                aria-label={`Connection status: ${getStatusText(connectionStatus)}${connectionStatus === 'offline' ? '. Click to retry' : ''}`}
                 onKeyDown={(e) => {
                   if (connectionStatus === 'offline' && (e.key === 'Enter' || e.key === ' ') && onRetryConnection) {
                     e.preventDefault();
@@ -231,19 +252,19 @@ const Layout: React.FC<LayoutComponentProps> = ({
         </Container>
       </Header>
       
-      <Main>
+      <Main id="main" role="main">
         <Container>
           {children}
         </Container>
       </Main>
       
-      <Footer>
+      <Footer role="contentinfo">
         <Container>
           <FooterContent>
             <div>
               © 2025 Qualitative Research Pipeline. Professional text analysis toolkit.
             </div>
-            <FooterLinks>
+            <FooterLinks role="navigation" aria-label="Footer navigation">
               <a href="#help">Help</a>
               <a href="#about">About</a>
               <a href="#contact">Contact</a>
