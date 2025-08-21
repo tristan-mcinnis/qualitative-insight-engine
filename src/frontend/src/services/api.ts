@@ -109,9 +109,25 @@ export class ApiService {
    * Check API health status
    */
   static async checkHealth(): Promise<HealthResponse> {
-    return apiRequest<HealthResponse>('/health', {
-      method: 'GET',
-    });
+    try {
+      // Test Supabase connectivity by querying projects table
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id')
+        .limit(1);
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      };
+    } catch (error) {
+      throw new Error(`Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   // Project Management
