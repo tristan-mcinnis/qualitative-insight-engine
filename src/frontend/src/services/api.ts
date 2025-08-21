@@ -140,13 +140,19 @@ export class ApiService {
     configuration?: any
   ): Promise<Project> {
     try {
+      // For demo purposes, use a default user_id since RLS policies expect it
+      // In production, this should be the authenticated user's ID
+      const defaultUserId = '00000000-0000-0000-0000-000000000000';
+      
       const { data: project, error } = await supabase
         .from('projects')
         .insert({
           name,
           description,
           status: 'created',
-          configuration
+          configuration,
+          user_id: defaultUserId,
+          project_type: 'qualitative'
         })
         .select()
         .single();
