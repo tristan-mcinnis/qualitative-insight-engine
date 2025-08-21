@@ -214,17 +214,39 @@ export class ApiService {
     file: File,
     content?: string
   ): Promise<UploadResult> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (content) {
-      formData.append('content', content);
-    }
+    try {
+      // Read file content if not provided
+      const fileContent = content || await file.text();
+      
+      // Store discussion guide metadata in Supabase
+      const { data: guide, error } = await supabase
+        .from('discussion_guides')
+        .insert({
+          project_id: projectId,
+          title: file.name,
+          content: fileContent,
+          file_name: file.name,
+          file_size: file.size,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
 
-    return apiRequest<UploadResult>(`/projects/${projectId}/upload/guide`, {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Remove Content-Type to let browser set it
-    });
+      if (error) {
+        throw new Error(`Failed to upload discussion guide: ${error.message}`);
+      }
+
+      return {
+        id: guide.id,
+        file_name: file.name,
+        file_path: `/guides/${guide.id}`, // Virtual path for Supabase storage
+        file_size: file.size,
+        created_at: guide.created_at
+      };
+    } catch (error) {
+      console.error('Upload discussion guide error:', error);
+      throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
@@ -234,24 +256,53 @@ export class ApiService {
     projectId: string,
     files: File[]
   ): Promise<{ uploadedTranscripts: UploadResult[]; errors: any[] }> {
-    const formData = new FormData();
-    files.forEach(file => {
-      formData.append('files', file);
-    });
+    try {
+      const uploadedTranscripts: UploadResult[] = [];
+      const errors: any[] = [];
 
-    const response = await apiRequest<{
-      data: UploadResult[];
-      errors?: any[];
-    }>(`/projects/${projectId}/upload/transcripts`, {
-      method: 'POST',
-      body: formData,
-      headers: {}, // Remove Content-Type to let browser set it
-    });
+      // Upload each transcript file to Supabase
+      for (const file of files) {
+        try {
+          const content = await file.text();
+          
+          const { data: transcript, error } = await supabase
+            .from('transcripts')
+            .insert({
+              project_id: projectId,
+              title: file.name,
+              content: content,
+              file_name: file.name,
+              file_size: file.size,
+              status: 'uploaded',
+              created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
 
-    return {
-      uploadedTranscripts: response.data || response as any,
-      errors: response.errors || []
-    };
+          if (error) {
+            errors.push({ file: file.name, error: error.message });
+          } else {
+            uploadedTranscripts.push({
+              id: transcript.id,
+              file_name: file.name,
+              file_path: `/transcripts/${transcript.id}`, // Virtual path for Supabase storage
+              file_size: file.size,
+              created_at: transcript.created_at
+            });
+          }
+        } catch (fileError) {
+          errors.push({ 
+            file: file.name, 
+            error: fileError instanceof Error ? fileError.message : 'Unknown error' 
+          });
+        }
+      }
+
+      return { uploadedTranscripts, errors };
+    } catch (error) {
+      console.error('Upload transcripts error:', error);
+      throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
