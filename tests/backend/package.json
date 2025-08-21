@@ -1,0 +1,38 @@
+{
+  "name": "qualitative-insight-backend-tests",
+  "version": "1.0.0",
+  "description": "Test suite for Supabase backend services",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest unit/",
+    "test:integration": "jest integration/",
+    "test:services": "jest services/"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.8",
+    "@types/uuid": "^9.0.7",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/"],
+    "testMatch": ["**/__tests__/**/*.ts", "**/?(*.)+(spec|test).ts"],
+    "collectCoverageFrom": [
+      "../../src/backend/src/**/*.ts",
+      "!../../src/backend/src/**/*.d.ts",
+      "!../../src/backend/src/index.ts"
+    ],
+    "coverageDirectory": "./coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "setupFilesAfterEnv": ["<rootDir>/setup.ts"]
+  }
+}
